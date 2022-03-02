@@ -13,60 +13,70 @@ class Solution {
 public:
     
 #if 0
-    // Terrible solution
-    //  - Create an array from all the values and grab the kth smallest. Preorder traversal will
-    //    give us a sorted list so it's easy
-    //  - Time O(n)
-    //  - Space O(n)
-    int kthSmallest(TreeNode* root, int k) {
+    // Do an inorder traversal and see if it is sorted
+    //  - Runtime linear
+    //  - Space linear
+    bool isValidBST(TreeNode* root) {
         if (root == nullptr) {
-            return -1;
+            return true;
         }
         
         vector<int> values;
-        getPreorderValues(root, values);
+        inOrderTraversal(root, values);
         
-        return values[k - 1];
+        bool isValid(true);
+        for (int i = 1; i < values.size(); ++i) {
+            isValid &= (values[i - 1] < values[i]);
+        }
+        
+        return isValid;
     }
     
-    
-    void getPreorderValues(TreeNode* root, std::vector<int>& values) {
+    void inOrderTraversal(TreeNode* root, vector<int>& values) {
         if (root == nullptr) {
             return;
         }
         
-        getPreorderValues(root->left, values);
+        inOrderTraversal(root->left, values);
         values.push_back(root->val);
-        getPreorderValues(root->right, values);        
+        inOrderTraversal(root->right, values);
     }
 #endif
     
-    int kthSmallest(TreeNode* root, int k) {
+    // For each subtree ensure that the current node and it's immediate children conform to 
+    // the invariant that the root val is between the left and right children values. 
+    // Also pass in a subtree min and max value to ensure that they don't violate and subsequent 
+    // values in the tree (e.g. a subtree could be valid but it's right child could be massive and
+    // not belong in the overall subtree)
+    bool isValidBST(TreeNode* root) {
         if (root == nullptr) {
-            return -1;
+            return true;
         }
+        // Check for root node being valid
+        if ((root->left != nullptr && root->left->val >= root->val) ||
+            (root->right != nullptr && root->right->val <= root->val))
+            return false;
+            
+        return isValidBSTRec(root->left, std::numeric_limits<int64_t>::min(), root->val) && 
+                isValidBSTRec(root->right, root->val, std::numeric_limits<int64_t>::max());
         
-        int result(0);
-        kthSmallestRec(root, k, result);    
-        return result;
     }
     
-    void kthSmallestRec(TreeNode* root, int& k, int& result) {
-        // We made it to the smallest node this is our base case
-        if (root == nullptr) {
-            return;
+    bool isValidBSTRec(TreeNode* root, int64_t subtreeMin, int64_t subtreeMax) {
+        if (root == nullptr) return true;
+        
+        
+        bool currentValid = (root->left == nullptr || (int64_t)root->val > root->left->val) &&
+                            (root->right == nullptr || (int64_t)root->val < root->right->val) &&
+                            (root->left == nullptr || (int64_t)root->left->val > subtreeMin) &&
+                            (root->right == nullptr || (int64_t)root->right->val < subtreeMax);
+        
+        if (!currentValid) {
+            return false;
         }
         
-        // Recurse left to continue finding the smallest element
-        kthSmallestRec(root->left, k, result);
-        
-        
-        // We've found our value
-        if (k == 1) {
-            result = root->val;
-        }
-        
-        k--;
-        kthSmallestRec(root->right, k, result);
+        return isValidBSTRec(root->left, subtreeMin, root->val) && 
+               isValidBSTRec(root->right, root->val, subtreeMax);
     }
+
 };
